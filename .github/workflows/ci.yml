@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  dbt-build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ecommerce_dwh
+          POSTGRES_USER: dwh_user
+          POSTGRES_PASSWORD: dwh_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U dwh_user -d ecommerce_dwh"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DWH_HOST: localhost
+      DWH_PORT: 5433
+      DWH_DB: ecommerce_dwh
+      DWH_USER: dwh_user
+      DWH_PASSWORD: dwh_password
+      DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install dbt-core==1.8.8 dbt-postgres==1.8.2 pandas SQLAlchemy psycopg2-binary python-dotenv
+
+      - name: Apply raw DDL
+        run: psql "postgresql://dwh_user:dwh_password@localhost:5433/ecommerce_dwh" -f sql/raw_ddl.sql
+
+      - name: Generate synthetic data
+        run: python scripts/generate_sample_data.py --n-orders 3000
+
+      - name: Load raw tables
+        run: python load_raw.py --full-refresh
+        working-directory: scripts
+
+      - name: dbt deps
+        run: dbt deps
+        working-directory: dbt/ecommerce_dwh
+
+      - name: dbt build (run + test)
+        run: dbt build
+        working-directory: dbt/ecommerce_dwh
