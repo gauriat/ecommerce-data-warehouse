@@ -1,0 +1,12 @@
+ecommerce_dwh:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DWH_HOST', 'localhost') }}"
+      port: "{{ env_var('DWH_PORT', '5433') | as_number }}"
+      user: "{{ env_var('DWH_USER', 'dwh_user') }}"
+      password: "{{ env_var('DWH_PASSWORD', 'dwh_password') }}"
+      dbname: "{{ env_var('DWH_DB', 'ecommerce_dwh') }}"
+      schema: analytics
+      threads: 4

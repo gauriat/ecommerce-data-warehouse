@@ -1,0 +1,92 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Standard calendar date dimension, one row per day.
+    columns:
+      - name: date_key
+        data_tests: [not_null, unique]
+      - name: calendar_date
+        data_tests: [not_null, unique]
+
+  - name: dim_customers
+    description: One row per customer (order-scoped customer_id, the grain used by the fact tables).
+    columns:
+      - name: customer_key
+        data_tests: [not_null, unique]
+      - name: customer_id
+        data_tests: [not_null, unique]
+
+  - name: dim_products
+    description: One row per product.
+    columns:
+      - name: product_key
+        data_tests: [not_null, unique]
+      - name: product_id
+        data_tests: [not_null, unique]
+
+  - name: dim_sellers
+    description: One row per marketplace seller.
+    columns:
+      - name: seller_key
+        data_tests: [not_null, unique]
+      - name: seller_id
+        data_tests: [not_null, unique]
+
+  - name: fact_orders
+    description: One row per order, with aggregated item/payment/review metrics. Grain -- order_id.
+    columns:
+      - name: order_key
+        data_tests: [not_null, unique]
+      - name: order_id
+        data_tests: [not_null, unique]
+      - name: customer_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+      - name: order_value
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: fact_order_items
+    description: One row per line item within an order. Grain -- order_id + order_item_id.
+    columns:
+      - name: order_item_key
+        data_tests: [not_null, unique]
+      - name: product_key
+        data_tests:
+          - relationships:
+              to: ref('dim_products')
+              field: product_key
+      - name: seller_key
+        data_tests:
+          - relationships:
+              to: ref('dim_sellers')
+              field: seller_key
+
+  - name: fact_payments
+    description: One row per payment applied to an order. Grain -- order_id + payment_sequential.
+    columns:
+      - name: payment_key
+        data_tests: [not_null, unique]
+      - name: payment_value
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: fact_reviews
+    description: One row per customer review. Grain -- review_id.
+    columns:
+      - name: review_key
+        data_tests: [not_null, unique]
+      - name: review_score
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 5
+              inclusive: true

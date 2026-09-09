@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: One row per customer identity used on an order.
+    columns:
+      - name: customer_id
+        description: Order-scoped customer identifier (a person gets a new one per order in the source system).
+        data_tests: [not_null, unique]
+      - name: customer_unique_id
+        description: Stable identifier for the same real-world person across orders.
+        data_tests: [not_null]
+      - name: customer_state
+        data_tests:
+          - not_null
+
+  - name: stg_sellers
+    description: One row per marketplace seller.
+    columns:
+      - name: seller_id
+        data_tests: [not_null, unique]
+
+  - name: stg_products
+    description: One row per product, enriched with the English category name.
+    columns:
+      - name: product_id
+        data_tests: [not_null, unique]
+      - name: product_category_name_english
+        data_tests: [not_null]
+
+  - name: stg_orders
+    description: One row per order header.
+    columns:
+      - name: order_id
+        data_tests: [not_null, unique]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: order_status
+        data_tests:
+          - accepted_values:
+              values: ['delivered', 'shipped', 'processing', 'canceled',
+                        'invoiced', 'unavailable', 'created', 'approved']
+
+  - name: stg_order_items
+    description: One row per line item within an order.
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_products')
+              field: product_id
+      - name: price
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: true
+
+  - name: stg_order_payments
+    description: One row per payment applied to an order (orders can be split across multiple payments).
+    columns:
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: payment_type
+        data_tests:
+          - accepted_values:
+              values: ['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined']
+
+  - name: stg_order_reviews
+    description: One row per customer review of an order.
+    columns:
+      - name: review_id
+        data_tests: [not_null]
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: review_score
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 5
+              inclusive: true

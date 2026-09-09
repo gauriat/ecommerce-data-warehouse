@@ -1,0 +1,12 @@
+.env
+dbt/ecommerce_dwh/target/
+dbt/ecommerce_dwh/dbt_packages/
+dbt/ecommerce_dwh/logs/
+dbt/ecommerce_dwh/package-lock.yml
+data/*.csv
+data/*.zip
+__pycache__/
+*.pyc
+venv/
+logs/
+airflow.db

@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Landing zone tables loaded verbatim by scripts/load_raw.py
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: {count: 26, period: hour}
+      error_after: {count: 50, period: hour}
+    tables:
+      - name: customers
+      - name: orders
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: {count: 26, period: hour}
+          error_after: {count: 50, period: hour}
+      - name: order_items
+      - name: order_payments
+      - name: order_reviews
+      - name: products
+      - name: sellers
+      - name: geolocation
+      - name: product_category_name_translation
